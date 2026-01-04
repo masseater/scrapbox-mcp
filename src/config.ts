@@ -86,17 +86,21 @@ function resolveEnabledTools(enableDelete: boolean): Set<string> {
 
 let cachedConfig: ScrapboxConfig | null = null;
 
-export function getConfig(): ScrapboxConfig {
+export function getConfig(): Result<ScrapboxConfig, ConfigError> {
   if (!cachedConfig) {
     const result = loadConfig();
     if (result.isErr()) {
-      throw new Error(result.error.message);
+      return result;
     }
     cachedConfig = result.value;
   }
-  return cachedConfig;
+  return ok(cachedConfig);
 }
 
 export function isToolEnabled(toolName: string): boolean {
-  return getConfig().enabledTools.has(toolName);
+  const result = getConfig();
+  if (result.isErr()) {
+    return false;
+  }
+  return result.value.enabledTools.has(toolName);
 }

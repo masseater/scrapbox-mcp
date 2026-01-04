@@ -7,6 +7,9 @@ export type WriteError = {
   message: string;
 };
 
+/** 挿入位置が未設定であることを示す定数 */
+const POSITION_UNSET = -1;
+
 function mapPushError(error: unknown): WriteError {
   if (typeof error === "string") {
     if (error.includes("Unauthorized") || error.includes("401")) {
@@ -20,10 +23,17 @@ function mapPushError(error: unknown): WriteError {
     }
     return { code: "UNKNOWN", message: error };
   }
-  return {
-    code: "UNKNOWN",
-    message: error instanceof Error ? error.message : "Unknown error",
-  };
+  if (error instanceof Error) {
+    return { code: "UNKNOWN", message: error.message };
+  }
+  if (typeof error === "object" && error !== null) {
+    return { code: "UNKNOWN", message: JSON.stringify(error) };
+  }
+  return { code: "UNKNOWN", message: "Unknown error" };
+}
+
+function buildPageUrl(project: string, title: string): string {
+  return `https://scrapbox.io/${project}/${encodeURIComponent(title)}`;
 }
 
 export class ScrapboxWriter {
@@ -42,64 +52,64 @@ export class ScrapboxWriter {
     ScrapboxWriter.instance = null;
   }
 
-  private getProjectAndSid(): { project: string; sid: string } {
-    const config = getConfig();
-    return {
-      project: config.project,
-      sid: config.cookie,
-    };
+  private getProjectAndSid(): Result<
+    { project: string; sid: string },
+    WriteError
+  > {
+    const configResult = getConfig();
+    if (configResult.isErr()) {
+      return err({
+        code: "UNKNOWN",
+        message: configResult.error.message,
+      });
+    }
+    return ok({
+      project: configResult.value.project,
+      sid: configResult.value.cookie,
+    });
+  }
+
+  private async patchPage(
+    title: string,
+    body: string,
+  ): Promise<Result<{ title: string; url: string }, WriteError>> {
+    const configResult = this.getProjectAndSid();
+    if (configResult.isErr()) {
+      return err(configResult.error);
+    }
+    const { project, sid } = configResult.value;
+    const lines = [title, ...body.split("\n")];
+
+    try {
+      const result = await patch(
+        project,
+        title,
+        () => lines.map((text) => ({ text })),
+        { sid },
+      );
+
+      if (!result.ok) {
+        return err(mapPushError(result.err));
+      }
+
+      return ok({ title, url: buildPageUrl(project, title) });
+    } catch (error) {
+      return err(mapPushError(error));
+    }
   }
 
   async createPage(
     title: string,
     body: string,
   ): Promise<Result<{ title: string; url: string }, WriteError>> {
-    const { project, sid } = this.getProjectAndSid();
-    const lines = [title, ...body.split("\n")];
-
-    try {
-      const result = await patch(
-        project,
-        title,
-        () => lines.map((text) => ({ text })),
-        { sid },
-      );
-
-      if (!result.ok) {
-        return err(mapPushError(result.err));
-      }
-
-      const url = `https://scrapbox.io/${project}/${encodeURIComponent(title)}`;
-      return ok({ title, url });
-    } catch (error) {
-      return err(mapPushError(error));
-    }
+    return this.patchPage(title, body);
   }
 
   async updatePage(
     title: string,
     body: string,
   ): Promise<Result<{ title: string; url: string }, WriteError>> {
-    const { project, sid } = this.getProjectAndSid();
-    const lines = [title, ...body.split("\n")];
-
-    try {
-      const result = await patch(
-        project,
-        title,
-        () => lines.map((text) => ({ text })),
-        { sid },
-      );
-
-      if (!result.ok) {
-        return err(mapPushError(result.err));
-      }
-
-      const url = `https://scrapbox.io/${project}/${encodeURIComponent(title)}`;
-      return ok({ title, url });
-    } catch (error) {
-      return err(mapPushError(error));
-    }
+    return this.patchPage(title, body);
   }
 
   /**
@@ -134,10 +144,14 @@ export class ScrapboxWriter {
       });
     }
 
-    const { project, sid } = this.getProjectAndSid();
+    const configResult = this.getProjectAndSid();
+    if (configResult.isErr()) {
+      return err(configResult.error);
+    }
+    const { project, sid } = configResult.value;
 
     // 実際の挿入位置を追跡するための変数
-    let actualInsertAt = -1;
+    let actualInsertAt = POSITION_UNSET;
 
     try {
       const result = await patch(
@@ -163,8 +177,11 @@ export class ScrapboxWriter {
         return err(mapPushError(result.err));
       }
 
-      const url = `https://scrapbox.io/${project}/${encodeURIComponent(title)}`;
-      return ok({ title, url, insertedAt: actualInsertAt });
+      return ok({
+        title,
+        url: buildPageUrl(project, title),
+        insertedAt: actualInsertAt,
+      });
     } catch (error) {
       return err(mapPushError(error));
     }
@@ -173,7 +190,11 @@ export class ScrapboxWriter {
   async deletePage(
     title: string,
   ): Promise<Result<{ title: string }, WriteError>> {
-    const { project, sid } = this.getProjectAndSid();
+    const configResult = this.getProjectAndSid();
+    if (configResult.isErr()) {
+      return err(configResult.error);
+    }
+    const { project, sid } = configResult.value;
 
     try {
       const result = await deletePageApi(project, title, { sid });

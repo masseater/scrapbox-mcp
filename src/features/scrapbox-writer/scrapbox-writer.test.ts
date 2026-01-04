@@ -2,6 +2,19 @@ import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import * as cosenseWebsocket from "@cosense/std/websocket";
 import { ScrapboxWriter } from "./scrapbox-writer.ts";
 
+// Mock types for @cosense/std/websocket patch function
+type PatchSuccessResult = { ok: true; val: { commitId: string } };
+type PatchErrorResult = { ok: false; err: string };
+type PatchResult = PatchSuccessResult | PatchErrorResult;
+
+function mockPatchSuccess(commitId = "abc123"): PatchResult {
+  return { ok: true, val: { commitId } };
+}
+
+function mockPatchError(error: string): PatchResult {
+  return { ok: false, err: error };
+}
+
 // Mock environment variables
 const originalEnv = process.env;
 
@@ -32,10 +45,9 @@ describe("ScrapboxWriter", () => {
 
   describe("createPage", () => {
     it("creates a page successfully", async () => {
-      spyOn(cosenseWebsocket, "patch").mockResolvedValue({
-        ok: true,
-        val: { commitId: "abc123" },
-      } as never);
+      spyOn(cosenseWebsocket, "patch").mockResolvedValue(
+        mockPatchSuccess() as never,
+      );
 
       const writer = ScrapboxWriter.getInstance();
       const result = await writer.createPage("New Page", "Line 1\nLine 2");
@@ -50,10 +62,9 @@ describe("ScrapboxWriter", () => {
     });
 
     it("returns error on unauthorized", async () => {
-      spyOn(cosenseWebsocket, "patch").mockResolvedValue({
-        ok: false,
-        err: "Unauthorized: 401",
-      } as never);
+      spyOn(cosenseWebsocket, "patch").mockResolvedValue(
+        mockPatchError("Unauthorized: 401") as never,
+      );
 
       const writer = ScrapboxWriter.getInstance();
       const result = await writer.createPage("New Page", "Content");
@@ -65,10 +76,9 @@ describe("ScrapboxWriter", () => {
     });
 
     it("returns error on duplicate title", async () => {
-      spyOn(cosenseWebsocket, "patch").mockResolvedValue({
-        ok: false,
-        err: "DuplicateTitleError: Page already exists",
-      } as never);
+      spyOn(cosenseWebsocket, "patch").mockResolvedValue(
+        mockPatchError("DuplicateTitleError: Page already exists") as never,
+      );
 
       const writer = ScrapboxWriter.getInstance();
       const result = await writer.createPage("Existing Page", "Content");
@@ -97,10 +107,9 @@ describe("ScrapboxWriter", () => {
 
   describe("updatePage", () => {
     it("updates a page successfully", async () => {
-      spyOn(cosenseWebsocket, "patch").mockResolvedValue({
-        ok: true,
-        val: { commitId: "def456" },
-      } as never);
+      spyOn(cosenseWebsocket, "patch").mockResolvedValue(
+        mockPatchSuccess("def456") as never,
+      );
 
       const writer = ScrapboxWriter.getInstance();
       const result = await writer.updatePage(
@@ -118,10 +127,9 @@ describe("ScrapboxWriter", () => {
     });
 
     it("returns error when page not found", async () => {
-      spyOn(cosenseWebsocket, "patch").mockResolvedValue({
-        ok: false,
-        err: "NotFoundError: 404",
-      } as never);
+      spyOn(cosenseWebsocket, "patch").mockResolvedValue(
+        mockPatchError("NotFoundError: 404") as never,
+      );
 
       const writer = ScrapboxWriter.getInstance();
       const result = await writer.updatePage("Nonexistent", "Content");
@@ -302,10 +310,9 @@ describe("ScrapboxWriter", () => {
     });
 
     it("returns error on unauthorized", async () => {
-      spyOn(cosenseWebsocket, "patch").mockResolvedValue({
-        ok: false,
-        err: "Unauthorized: 401",
-      } as never);
+      spyOn(cosenseWebsocket, "patch").mockResolvedValue(
+        mockPatchError("Unauthorized: 401") as never,
+      );
 
       const writer = ScrapboxWriter.getInstance();
       const result = await writer.insertLines("Test Page", ["Line"]);
@@ -381,10 +388,9 @@ describe("ScrapboxWriter", () => {
 
   describe("error mapping", () => {
     it("maps string errors containing Unauthorized to UNAUTHORIZED", async () => {
-      spyOn(cosenseWebsocket, "patch").mockResolvedValue({
-        ok: false,
-        err: "Unauthorized access",
-      } as never);
+      spyOn(cosenseWebsocket, "patch").mockResolvedValue(
+        mockPatchError("Unauthorized access") as never,
+      );
 
       const writer = ScrapboxWriter.getInstance();
       const result = await writer.createPage("Test", "Content");
@@ -396,10 +402,9 @@ describe("ScrapboxWriter", () => {
     });
 
     it("maps unknown string errors to UNKNOWN", async () => {
-      spyOn(cosenseWebsocket, "patch").mockResolvedValue({
-        ok: false,
-        err: "Some random error",
-      } as never);
+      spyOn(cosenseWebsocket, "patch").mockResolvedValue(
+        mockPatchError("Some random error") as never,
+      );
 
       const writer = ScrapboxWriter.getInstance();
       const result = await writer.createPage("Test", "Content");
@@ -411,7 +416,7 @@ describe("ScrapboxWriter", () => {
       }
     });
 
-    it("maps non-string, non-Error objects to UNKNOWN", async () => {
+    it("maps non-string, non-Error objects to UNKNOWN with JSON", async () => {
       spyOn(cosenseWebsocket, "patch").mockRejectedValue({ weird: "object" });
 
       const writer = ScrapboxWriter.getInstance();
@@ -420,7 +425,7 @@ describe("ScrapboxWriter", () => {
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error.code).toBe("UNKNOWN");
-        expect(result.error.message).toBe("Unknown error");
+        expect(result.error.message).toBe('{"weird":"object"}');
       }
     });
   });

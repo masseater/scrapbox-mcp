@@ -69,11 +69,21 @@ export class ScrapboxClient {
     ScrapboxClient.instance = null;
   }
 
-  private getOptions() {
-    const config = getConfig();
-    return {
-      sid: config.cookie,
-    };
+  private getConfigOrError(): Result<
+    { project: string; sid: string },
+    ScrapboxError
+  > {
+    const configResult = getConfig();
+    if (configResult.isErr()) {
+      return err({
+        code: "UNKNOWN",
+        message: configResult.error.message,
+      });
+    }
+    return ok({
+      project: configResult.value.project,
+      sid: configResult.value.cookie,
+    });
   }
 
   async listPages(options: {
@@ -81,9 +91,14 @@ export class ScrapboxClient {
     skip?: number;
     sort?: SortOrder;
   }): Promise<Result<PageList, ScrapboxError>> {
-    const config = getConfig();
-    const result = await cosenseListPages(config.project, {
-      ...this.getOptions(),
+    const configResult = this.getConfigOrError();
+    if (configResult.isErr()) {
+      return err(configResult.error);
+    }
+    const { project, sid } = configResult.value;
+
+    const result = await cosenseListPages(project, {
+      sid,
       limit: options.limit,
       skip: options.skip,
       sort: options.sort,
@@ -97,12 +112,13 @@ export class ScrapboxClient {
   }
 
   async getPage(title: string): Promise<Result<PageData, ScrapboxError>> {
-    const config = getConfig();
-    const result = await cosenseGetPage(
-      config.project,
-      title,
-      this.getOptions(),
-    );
+    const configResult = this.getConfigOrError();
+    if (configResult.isErr()) {
+      return err(configResult.error);
+    }
+    const { project, sid } = configResult.value;
+
+    const result = await cosenseGetPage(project, title, { sid });
 
     if (!result.ok) {
       return err(mapCosenseError(result.err));
@@ -114,12 +130,13 @@ export class ScrapboxClient {
   async searchPages(
     query: string,
   ): Promise<Result<SearchResult, ScrapboxError>> {
-    const config = getConfig();
-    const result = await searchForPages(
-      query,
-      config.project,
-      this.getOptions(),
-    );
+    const configResult = this.getConfigOrError();
+    if (configResult.isErr()) {
+      return err(configResult.error);
+    }
+    const { project, sid } = configResult.value;
+
+    const result = await searchForPages(query, project, { sid });
 
     if (!result.ok) {
       return err(mapCosenseError(result.err));

@@ -33,18 +33,17 @@ export const insertLinesTool = defineTool({
     if (result.isErr()) {
       return {
         isError: true,
-        content: [{ type: "text" as const, text: result.error.message }],
+        content: [{ type: "text", text: result.error.message }],
       };
     }
 
     const { url, insertedAt } = result.value;
-    const positionText = insertedAt === -1 ? "末尾" : `${insertedAt}行目`;
 
     return {
       content: [
         {
-          type: "text" as const,
-          text: `Inserted ${linesArray.length} line(s) at ${positionText}\nPage: ${title}\nURL: ${url}`,
+          type: "text",
+          text: `Inserted ${linesArray.length} line(s) at line ${insertedAt}\nPage: ${title}\nURL: ${url}`,
         },
       ],
     };
