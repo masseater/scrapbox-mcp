@@ -1,68 +1,57 @@
 # scrapbox-mcp
 
-Scrapbox API を操作するための MCP サーバー
+MCP server for Scrapbox API.
 
-## Quick Start
-
-```bash
-# Install dependencies
-bun install
-
-# Run in stdio mode
-bun run dev
-
-# Run in HTTP mode
-bun run dev:http
-```
-
-## Usage with Claude Desktop
-
-Add to your Claude Desktop config (`~/.config/claude/claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "scrapbox-mcp": {
-      "command": "bunx",
-      "args": ["@r_masseater/scrapbox-mcp@latest"]
-    }
-  }
-}
-```
-
-## Available Primitives
-
-### Tools
-
-- **echo** - Returns the input message as-is
-
-### Resources
-
-- **info://server** - Server information
-
-### Prompts
-
-- **greeting** - Generates a greeting message
-
-## Development
+## Run
 
 ```bash
-bun run check      # Lint & format check
-bun run check:fix  # Auto fix
-bun run typecheck  # Type check (tsgo)
-bun run build      # Build for production
+bunx @r_masseater/scrapbox-mcp@latest
 ```
 
-## Publishing
+## Environment Variables
 
-npmへの公開はGitHub Actionsで行います。
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SCRAPBOX_PROJECT` | ✓ | Project name |
+| `SCRAPBOX_COOKIE` | ✓ | Value of `connect.sid` cookie |
+| `SCRAPBOX_PRESET` | | Tool preset (see below) |
+| `SCRAPBOX_TOOLS` | | Comma-separated list of tools to enable |
+| `SCRAPBOX_ENABLE_DELETE` | | Set `true` to enable delete_page |
 
-1. GitHubリポジトリの **Actions** タブを開く
-2. 左のワークフロー一覧から **Publish to npm** を選択
-3. **Run workflow** をクリック
-4. バージョン番号を入力（例: `0.1.0`）
-5. **Run workflow** を実行
+### Getting the Cookie
 
-### 必要な設定
+1. Log in to [scrapbox.io](https://scrapbox.io)
+2. DevTools (F12) → **Application** → **Cookies** → `https://scrapbox.io`
+3. Copy the value of `connect.sid`
 
-- `NPM_TOKEN`: npmのアクセストークンをリポジトリのSecretsに設定
+### Tool Presets
+
+Select available tools with `SCRAPBOX_PRESET`:
+
+| Preset | Tools |
+|--------|-------|
+| `minimal` | list_pages, get_page |
+| `readonly` | list_pages, get_page, search_pages, get_links, get_backlinks |
+| `full` (default) | All tools (delete_page requires `SCRAPBOX_ENABLE_DELETE=true`) |
+
+Custom selection: `SCRAPBOX_TOOLS=list_pages,get_page,search_pages`
+
+## Available Tools
+
+### Read
+
+| Tool | Description |
+|------|-------------|
+| `list_pages` | List all pages in the project |
+| `get_page` | Get page content (Scrapbox notation) |
+| `search_pages` | Full-text search |
+| `get_links` | Get outgoing links from a page |
+| `get_backlinks` | Get backlinks to a page |
+
+### Write
+
+| Tool | Description |
+|------|-------------|
+| `create_page` | Create a new page |
+| `update_page` | Update an existing page |
+| `delete_page` | Delete a page (requires `SCRAPBOX_ENABLE_DELETE=true`) |

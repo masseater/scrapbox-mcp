@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "scrapbox-mcp": {
+      "type": "stdio",
+      "command": "bunx",
+      "args": [
+        "@r_masseater/scrapbox-mcp@latest"
+      ],
+      "env": {
+        "SCRAPBOX_PROJECT": "${SCRAPBOX_PROJECT}",
+        "SCRAPBOX_COOKIE": "${SCRAPBOX_COOKIE}"
+      }
+    }
+  }
+}

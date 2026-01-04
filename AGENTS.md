@@ -10,14 +10,13 @@ Scrapbox API を操作するための MCP サーバー
 
 API 実装のリファレンス: https://github.com/takker99/scrapbox-userscript-std
 
-## Authentication
+## Environment Variables
 
-ブラウザの Cookie（`connect.sid`）を使用して Scrapbox API を認証する。環境変数 `SCRAPBOX_COOKIE` に Cookie 値を設定。
-
-```bash
-# .env または環境変数で設定
-SCRAPBOX_COOKIE="connect.sid=s%3A..."
-```
+| Variable | Description |
+|----------|-------------|
+| `SCRAPBOX_PROJECT` | プロジェクト名（必須） |
+| `SCRAPBOX_COOKIE` | 認証用 Cookie `connect.sid=...`（必須） |
+| `HTTP` | `1` で HTTP モード起動（省略時は stdio）|
 
 ## Tech Stack
 
@@ -69,9 +68,34 @@ src/
 
 ## Architecture
 
-`define*` ヘルパー（`defineTool`, `defineResource`, `definePrompt`）は MCP SDK の登録を統一パターンでラップ。各定義は `.register(server)` メソッドを持ち、`src/index.ts` で呼び出される。
+```
+┌─────────────────────────────────────────────────────────────┐
+│ src/index.ts                                                │
+│   ├── createServer() → tools/resources/prompts を register │
+│   ├── runStdio() → StdioServerTransport                    │
+│   └── createHttpApp() → Hono + StreamableHTTPTransport     │
+└─────────────────────────────────────────────────────────────┘
+                          │
+          ┌───────────────┼───────────────┐
+          ▼               ▼               ▼
+┌─────────────────┐ ┌───────────┐ ┌─────────────┐
+│ definitions/    │ │ resources │ │ prompts     │
+│ tools/          │ │           │ │             │
+│ (thin wrappers) │ │           │ │             │
+└────────┬────────┘ └───────────┘ └─────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│ features/                                                   │
+│   └── scrapbox-client/ → @cosense/std をラップ              │
+│       option-t Result → neverthrow Result 変換              │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**責務の分離**: 複雑なロジックは `src/features/` に純粋関数として配置し、`Result<T, E>`（neverthrow）を返す。`src/definitions/` の MCP 定義は feature 関数を呼び出してレスポンスを整形する薄いラッパー。
+**責務の分離**:
+- `src/definitions/`: MCP SDK 登録の薄いラッパー。`define*` ヘルパーで統一パターン化
+- `src/features/`: 純粋なビジネスロジック。`Result<T, E>`（neverthrow）を返す
+- `ScrapboxClient`: @cosense/std の option-t Result を neverthrow に変換するシングルトン
 
 ## Debugging with MCP Inspector
 
@@ -102,3 +126,9 @@ bunx @modelcontextprotocol/inspector bun run src/index.ts
 ## Conventions
 
 - stdio モードではコンソール出力禁止（stdin/stdout が MCP 通信に使われるため）
+
+## Publishing
+
+npm への公開は `/publish` スラッシュコマンドで実行（内部で GitHub Actions を使用）。
+
+※ リポジトリ Secrets に `NPM_TOKEN` が必要

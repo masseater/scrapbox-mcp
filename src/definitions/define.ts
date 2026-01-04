@@ -9,6 +9,7 @@ import type {
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export type Registrable = { register: (server: McpServer) => void };
+
 import type {
   AnySchema,
   ZodRawShapeCompat,
