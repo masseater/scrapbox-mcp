@@ -1,6 +1,6 @@
 {
   "name": "@r_masseater/scrapbox-mcp",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Scrapbox API を操作するための MCP サーバー",
   "type": "module",
   "main": "dist/index.js",
