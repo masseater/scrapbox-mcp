@@ -1,5 +1,5 @@
 {
-  "name": "scrapbox-mcp",
+  "name": "@r_masseater/scrapbox-mcp",
   "version": "0.0.1",
   "description": "Scrapbox API を操作するための MCP サーバー",
   "type": "module",
