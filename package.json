@@ -1,11 +1,11 @@
 {
-  "name": "mcp-template",
+  "name": "scrapbox-mcp",
   "version": "0.0.1",
-  "description": "MCP サーバー開発のための汎用テンプレート",
+  "description": "Scrapbox API を操作するための MCP サーバー",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "mcp-template": "dist/index.js"
+    "scrapbox-mcp": "dist/index.js"
   },
   "files": [
     "dist"

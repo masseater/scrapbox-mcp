@@ -8,7 +8,7 @@ import { tools } from "@/definitions/tools";
 
 function createServer() {
   const server = new McpServer({
-    name: "mcp-template",
+    name: "scrapbox-mcp",
     version: "0.0.1",
   });
 

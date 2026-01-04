@@ -1,6 +1,6 @@
-# mcp-template
+# scrapbox-mcp
 
-MCP サーバー開発のための汎用テンプレート
+Scrapbox API を操作するための MCP サーバー
 
 ## Quick Start
 
@@ -22,9 +22,9 @@ Add to your Claude Desktop config (`~/.config/claude/claude_desktop_config.json`
 ```json
 {
   "mcpServers": {
-    "mcp-template": {
+    "scrapbox-mcp": {
       "command": "bunx",
-      "args": ["mcp-template"]
+      "args": ["@r_masseater/scrapbox-mcp@latest"]
     }
   }
 }

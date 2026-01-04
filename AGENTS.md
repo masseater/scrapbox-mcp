@@ -2,9 +2,22 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# mcp-template
+# scrapbox-mcp
 
-MCP サーバー開発のための汎用テンプレート
+Scrapbox API を操作するための MCP サーバー
+
+## Reference
+
+API 実装のリファレンス: https://github.com/takker99/scrapbox-userscript-std
+
+## Authentication
+
+ブラウザの Cookie（`connect.sid`）を使用して Scrapbox API を認証する。環境変数 `SCRAPBOX_COOKIE` に Cookie 値を設定。
+
+```bash
+# .env または環境変数で設定
+SCRAPBOX_COOKIE="connect.sid=s%3A..."
+```
 
 ## Tech Stack
 
@@ -34,7 +47,7 @@ bun run typecheck        # Type check
 # Test
 bun test                 # Run tests
 bun test --watch         # Watch mode
-bun test src/features/text-stats/text-stats.test.ts  # Single file
+bun test src/features/<feature>/<feature>.test.ts  # Single file
 
 # Build
 bun run build            # Build for production
@@ -56,9 +69,9 @@ src/
 
 ## Architecture
 
-The `define*` helpers (`defineTool`, `defineResource`, `definePrompt`) wrap MCP SDK registration with a consistent pattern. Each returns an object with a `.register(server)` method that's called in `src/index.ts`.
+`define*` ヘルパー（`defineTool`, `defineResource`, `definePrompt`）は MCP SDK の登録を統一パターンでラップ。各定義は `.register(server)` メソッドを持ち、`src/index.ts` で呼び出される。
 
-**Separation of concerns**: Complex logic goes in `src/features/` as pure functions returning `Result<T, E>` (neverthrow). MCP definitions in `src/definitions/` are thin wrappers that call feature functions and format responses.
+**責務の分離**: 複雑なロジックは `src/features/` に純粋関数として配置し、`Result<T, E>`（neverthrow）を返す。`src/definitions/` の MCP 定義は feature 関数を呼び出してレスポンスを整形する薄いラッパー。
 
 ## Debugging with MCP Inspector
 
