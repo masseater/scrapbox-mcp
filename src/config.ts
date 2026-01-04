@@ -31,6 +31,7 @@ const PRESET_TOOLS: Record<ToolPreset, readonly string[]> = {
     "get_backlinks",
     "create_page",
     "update_page",
+    "insert_lines",
     "delete_page",
   ],
 };

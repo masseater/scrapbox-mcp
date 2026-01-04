@@ -102,6 +102,74 @@ export class ScrapboxWriter {
     }
   }
 
+  /**
+   * 指定した行に新しい行を挿入する
+   * @param title ページタイトル
+   * @param lines 挿入する行（配列）
+   * @param position 挿入位置（1-indexed, 省略時は末尾）。タイトル行（0行目）の後が position=1
+   */
+  async insertLines(
+    title: string,
+    lines: string[],
+    position?: number,
+  ): Promise<
+    Result<{ title: string; url: string; insertedAt: number }, WriteError>
+  > {
+    // 空配列の場合は早期リターン
+    if (lines.length === 0) {
+      return err({
+        code: "UNKNOWN",
+        message: "Lines array cannot be empty",
+      });
+    }
+
+    // position の検証（NaN, Infinity, 小数をチェック）
+    if (
+      position !== undefined &&
+      (!Number.isFinite(position) || !Number.isInteger(position))
+    ) {
+      return err({
+        code: "UNKNOWN",
+        message: "Position must be a finite integer",
+      });
+    }
+
+    const { project, sid } = this.getProjectAndSid();
+
+    // 実際の挿入位置を追跡するための変数
+    let actualInsertAt = -1;
+
+    try {
+      const result = await patch(
+        project,
+        title,
+        (currentLines) => {
+          // currentLines[0] はタイトル行
+          const insertAt = position ?? currentLines.length;
+          // 範囲外の場合は末尾に挿入（最小1、最大は現在の行数）
+          actualInsertAt = Math.min(Math.max(1, insertAt), currentLines.length);
+
+          const newLines = [
+            ...currentLines.slice(0, actualInsertAt),
+            ...lines.map((text) => ({ text })),
+            ...currentLines.slice(actualInsertAt),
+          ];
+          return newLines;
+        },
+        { sid },
+      );
+
+      if (!result.ok) {
+        return err(mapPushError(result.err));
+      }
+
+      const url = `https://scrapbox.io/${project}/${encodeURIComponent(title)}`;
+      return ok({ title, url, insertedAt: actualInsertAt });
+    } catch (error) {
+      return err(mapPushError(error));
+    }
+  }
+
   async deletePage(
     title: string,
   ): Promise<Result<{ title: string }, WriteError>> {

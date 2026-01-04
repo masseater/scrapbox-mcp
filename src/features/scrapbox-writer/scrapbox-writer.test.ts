@@ -133,6 +133,205 @@ describe("ScrapboxWriter", () => {
     });
   });
 
+  describe("insertLines", () => {
+    type LineCallback = (lines: { text: string }[]) => { text: string }[];
+
+    function mockPatchWithCallback(
+      callbackRef: { current: LineCallback | null },
+      mockLines: { text: string }[] = [{ text: "Title" }, { text: "Content" }],
+    ) {
+      spyOn(cosenseWebsocket, "patch").mockImplementation(
+        async (_project, _title, callback, _options) => {
+          callbackRef.current = callback as LineCallback;
+          // コールバックを実行して actualInsertAt を更新させる
+          (callback as LineCallback)(mockLines);
+          return { ok: true, val: { commitId: "xyz789" } } as never;
+        },
+      );
+    }
+
+    function assertCallback(callbackRef: {
+      current: LineCallback | null;
+    }): LineCallback {
+      if (callbackRef.current === null) {
+        throw new Error("capturedCallback should not be null");
+      }
+      return callbackRef.current;
+    }
+
+    it("inserts lines at the end when position is not specified", async () => {
+      const callbackRef: { current: LineCallback | null } = { current: null };
+      const mockLines = [
+        { text: "Test Page" },
+        { text: "Existing line 1" },
+        { text: "Existing line 2" },
+      ];
+      mockPatchWithCallback(callbackRef, mockLines);
+
+      const writer = ScrapboxWriter.getInstance();
+      const result = await writer.insertLines("Test Page", [
+        "New line 1",
+        "New line 2",
+      ]);
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.title).toBe("Test Page");
+        // insertedAt は実際の挿入位置（末尾 = currentLines.length = 3）
+        expect(result.value.insertedAt).toBe(3);
+      }
+
+      // Verify callback logic
+      const callback = assertCallback(callbackRef);
+      const newLines = callback(mockLines);
+      expect(newLines).toEqual([
+        { text: "Test Page" },
+        { text: "Existing line 1" },
+        { text: "Existing line 2" },
+        { text: "New line 1" },
+        { text: "New line 2" },
+      ]);
+    });
+
+    it("inserts lines at specified position", async () => {
+      const callbackRef: { current: LineCallback | null } = { current: null };
+      const mockLines = [
+        { text: "Test Page" },
+        { text: "Line 1" },
+        { text: "Line 2" },
+        { text: "Line 3" },
+      ];
+      mockPatchWithCallback(callbackRef, mockLines);
+
+      const writer = ScrapboxWriter.getInstance();
+      const result = await writer.insertLines(
+        "Test Page",
+        ["Inserted line"],
+        2,
+      );
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.insertedAt).toBe(2);
+      }
+
+      // Verify callback logic - insert at position 2 (after title and first line)
+      const callback = assertCallback(callbackRef);
+      const newLines = callback(mockLines);
+      expect(newLines).toEqual([
+        { text: "Test Page" },
+        { text: "Line 1" },
+        { text: "Inserted line" },
+        { text: "Line 2" },
+        { text: "Line 3" },
+      ]);
+    });
+
+    it("clamps position to valid range (minimum 1)", async () => {
+      const callbackRef: { current: LineCallback | null } = { current: null };
+      mockPatchWithCallback(callbackRef);
+
+      const writer = ScrapboxWriter.getInstance();
+      await writer.insertLines("Test Page", ["New line"], 0); // position 0 should be clamped to 1
+
+      const callback = assertCallback(callbackRef);
+      const currentLines = [{ text: "Title" }, { text: "Content" }];
+      const newLines = callback(currentLines);
+      expect(newLines).toEqual([
+        { text: "Title" },
+        { text: "New line" },
+        { text: "Content" },
+      ]);
+    });
+
+    it("clamps position to end when exceeds line count", async () => {
+      const callbackRef: { current: LineCallback | null } = { current: null };
+      mockPatchWithCallback(callbackRef);
+
+      const writer = ScrapboxWriter.getInstance();
+      await writer.insertLines("Test Page", ["New line"], 100); // position exceeds line count
+
+      const callback = assertCallback(callbackRef);
+      const currentLines = [{ text: "Title" }, { text: "Content" }];
+      const newLines = callback(currentLines);
+      expect(newLines).toEqual([
+        { text: "Title" },
+        { text: "Content" },
+        { text: "New line" },
+      ]);
+    });
+
+    it("returns error on empty lines array", async () => {
+      const writer = ScrapboxWriter.getInstance();
+      const result = await writer.insertLines("Test Page", []);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toBe("Lines array cannot be empty");
+      }
+    });
+
+    it("returns error on NaN position", async () => {
+      const writer = ScrapboxWriter.getInstance();
+      const result = await writer.insertLines("Test Page", ["Line"], NaN);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toBe("Position must be a finite integer");
+      }
+    });
+
+    it("returns error on Infinity position", async () => {
+      const writer = ScrapboxWriter.getInstance();
+      const result = await writer.insertLines("Test Page", ["Line"], Infinity);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toBe("Position must be a finite integer");
+      }
+    });
+
+    it("returns error on float position", async () => {
+      const writer = ScrapboxWriter.getInstance();
+      const result = await writer.insertLines("Test Page", ["Line"], 1.5);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toBe("Position must be a finite integer");
+      }
+    });
+
+    it("returns error on unauthorized", async () => {
+      spyOn(cosenseWebsocket, "patch").mockResolvedValue({
+        ok: false,
+        err: "Unauthorized: 401",
+      } as never);
+
+      const writer = ScrapboxWriter.getInstance();
+      const result = await writer.insertLines("Test Page", ["Line"]);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe("UNAUTHORIZED");
+      }
+    });
+
+    it("handles thrown errors", async () => {
+      spyOn(cosenseWebsocket, "patch").mockRejectedValue(
+        new Error("Connection failed"),
+      );
+
+      const writer = ScrapboxWriter.getInstance();
+      const result = await writer.insertLines("Test Page", ["Line"]);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.code).toBe("UNKNOWN");
+        expect(result.error.message).toBe("Connection failed");
+      }
+    });
+  });
+
   describe("deletePage", () => {
     it("deletes a page successfully", async () => {
       spyOn(cosenseWebsocket, "deletePage").mockResolvedValue({

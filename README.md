@@ -53,5 +53,6 @@ Custom selection: `SCRAPBOX_TOOLS=list_pages,get_page,search_pages`
 | Tool | Description |
 |------|-------------|
 | `create_page` | Create a new page |
-| `update_page` | Update an existing page |
+| `update_page` | Update an existing page (full replacement) |
+| `insert_lines` | Insert lines at a specific position (or append to end) |
 | `delete_page` | Delete a page (requires `SCRAPBOX_ENABLE_DELETE=true`) |
