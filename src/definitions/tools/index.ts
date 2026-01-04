@@ -1,4 +1,22 @@
-import { echoTool } from "@/definitions/tools/echo.ts";
-import { textStatsTool } from "@/definitions/tools/text-stats.ts";
+import { isToolEnabled } from "@/config.ts";
+import { createPageTool } from "@/definitions/tools/create-page.ts";
+import { deletePageTool } from "@/definitions/tools/delete-page.ts";
+import { getBacklinksTool } from "@/definitions/tools/get-backlinks.ts";
+import { getLinksTool } from "@/definitions/tools/get-links.ts";
+import { getPageTool } from "@/definitions/tools/get-page.ts";
+import { listPagesTool } from "@/definitions/tools/list-pages.ts";
+import { searchPagesTool } from "@/definitions/tools/search-pages.ts";
+import { updatePageTool } from "@/definitions/tools/update-page.ts";
 
-export const tools = [echoTool, textStatsTool] as const;
+const allTools = [
+  listPagesTool,
+  getPageTool,
+  searchPagesTool,
+  getLinksTool,
+  getBacklinksTool,
+  createPageTool,
+  updatePageTool,
+  deletePageTool,
+] as const;
+
+export const tools = allTools.filter((tool) => isToolEnabled(tool.name));

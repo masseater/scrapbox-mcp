@@ -31,6 +31,8 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@cosense/std": "npm:@jsr/cosense__std",
+    "@cosense/types": "npm:@jsr/cosense__types",
     "@hono/mcp": "^0.2.3",
     "@modelcontextprotocol/sdk": "^1.25.1",
     "hono": "^4.11.3",
