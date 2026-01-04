@@ -1,3 +1,3 @@
-import { greetingPrompt } from "@/definitions/prompts/greeting.ts";
+import type { Registrable } from "@/definitions/define.ts";
 
-export const prompts = [greetingPrompt] as const;
+export const prompts: Registrable[] = [];

@@ -1,3 +1,3 @@
-import { serverInfoResource } from "@/definitions/resources/server-info.ts";
+import type { Registrable } from "@/definitions/define.ts";
 
-export const resources = [serverInfoResource] as const;
+export const resources: Registrable[] = [];
