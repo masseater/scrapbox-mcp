@@ -21,7 +21,7 @@
     "prepublishOnly": "bun run build"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.11",
+    "@biomejs/biome": "^2.3.12",
     "@cosense/std": "npm:@jsr/cosense__std",
     "@cosense/types": "npm:@jsr/cosense__types",
     "@types/bun": "latest",
