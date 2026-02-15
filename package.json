@@ -25,7 +25,7 @@
     "@cosense/std": "npm:@jsr/cosense__std",
     "@cosense/types": "npm:@jsr/cosense__types",
     "@types/bun": "latest",
-    "@typescript/native-preview": "^7.0.0-dev.20260208.1",
+    "@typescript/native-preview": "^7.0.0-dev.20260215.1",
     "knip": "^5.83.1"
   },
   "peerDependencies": {
