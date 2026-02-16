@@ -29,7 +29,7 @@
     "knip": "^5.83.1"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@hono/mcp": "^0.2.3",
