@@ -26,7 +26,7 @@
     "@cosense/types": "npm:@jsr/cosense__types",
     "@types/bun": "latest",
     "@typescript/native-preview": "^7.0.0-dev.20260308.1",
-    "knip": "^5.86.0"
+    "knip": "^6.11.0"
   },
   "peerDependencies": {
     "typescript": "^5.9.3"
